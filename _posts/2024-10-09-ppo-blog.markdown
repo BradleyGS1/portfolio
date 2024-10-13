@@ -1,0 +1,77 @@
+---
+layout: "single"
+title: "Mastering On-Policy Reinforcement Learning with Proximal Policy Optimisation"
+date: 2024-10-09 15:46:57 +0100
+show_date: true
+read_time: true
+toc: true
+toc_label: "Contents"
+share: true
+categories: jekyll blog
+---
+
+Proximal Policy Optimisation (PPO) is an on-policy deep reinforcement learning (RL) algorithm that builds on earlier algorithms by utilising both an actor and critic model (parameterised by neural networks) and a modified policy objective. This policy objective is altered with the hope that updates to the model will be as large as possible without significantly diverging from its previous iteration. Its improved stability and sample efficiency makes it a popular algorithm for deep RL researchers in fields such as robotics, classic control and sequential decision making problems. 
+
+The purpose of this project is to investigate the theory and implementation details that go into PPO and ideally serve as a useful learning resource. Experiments underlining the performance of the algorithm on various environments are provided at the end.
+
+## Basic Theory
+
+The type of problems that can be solved by RL algorithms are formulated as a mathematical object known as a Markov decision process (MDP). An MDP is a model of an environment where we make the assumption that we can exactly provide full information that encodes the state of the world. In each of these possibly infinite states we can then perform a single action from the list of possible actions. This action then changes the current state into a new state and the environment provides feedback in the form of a reward. The environment may not necessarily be deterministic and the function which returns the probability of transitioning from state $s_t$ to $s_{t+1}$ when taking action $a_t$ is called the transition function and denoted $T_a(s_t, s_{t+1})$. The reward given for performing action $a_t$ is denoted $r_t$ and the overall goal of RL is to find an optimal policy $\pi^*(s_t)$ for choosing actions which maximises the total return $\sum r_t$ over a set time period.
+
+### Value Function Objective
+
+A critic function $V_\phi$ parameterised by $\phi$, the weights within the neural network, is employed to approximate the expected discounted sum of returns from a given state. By pairing the actor with a critic, policy updates are weighted using an advantage estimate $A_t$, which is calculated as the difference between observed discounted returns $R_t$ and the critic's estimated value $V_\phi(s_t)$. This allows the policy to be updated more significantly in scenarios where the actual returns exceed the critic's expectations, thereby prioritising updates that yield higher benefits and correcting areas where the critic’s predictions are more surprising.
+
+$R_t = \sum\limits_{k=0}^{T-t-1} \gamma^k r_{t+k} \;, \quad A_t = R_t - V_\phi(s_t)$. 
+
+Here $\gamma \in (0, 1)$ is a user specified discount factor that is theoretically unnecessary but in practice, when set to a suitable value, massively improves the stability of the value function updates. The value function objective is then given by:
+
+$\phi_{k+1} = \text{arg}\underset{\small{\phi}}{\min} \frac{1}{\mid D_k \mid T} \sum\limits_{\tau\sim D_k} \sum\limits_{t=0}^{T-1} \big(R_t - V_{\phi_k}(s_t)\big)^2$ 
+
+where $D_k$ is a set of gathered trajectories by running policy $\pi_{\theta_k}$ in the environment. $\tau$ denotes a trajectory uniformly sampled from this set.
+
+### Clip Policy Objective
+
+The standard policy objective seeks to maximise the finite-horizon expected discounted return of the policy $\pi_\theta$ which is parameterised by $\theta$.
+Note that, by convention, objectives used in the training of neural networks are taken to be losses that are to be minimised using gradient descent. Therefore the loss should be considered the negative sign of what is within the argmax
+
+$\theta_{k+1} = \text{arg}\underset{\small{\theta}}{\max} \frac{1}{\mid D_k \mid T} \sum\limits_{\tau\sim D_k} \sum\limits_{t=0}^{T-1} \log \pi_\theta(a_t \mid s_t) \, A_t$.
+
+The primary motivation behind PPO is being able to take the largest possible update step using current data without diverging so far away from the prior iteration that we get performance collapse. To achieve this, PPO uses clipping in the policy objective to reduce the size of the gradient updates when they would normally move the new policy too far from the old policy.
+
+$\theta_{k+1} = \text{arg}\underset{\small{\theta}}{\max} \frac{1}{\mid D_k \mid T} \sum\limits_{\tau\sim D_k} \sum\limits_{t=0}^{T-1} \min \big(\rho_{k, t} \, A_t,\; \text{clip}(\rho_{k, t}, 1-\epsilon, 1+\epsilon) \, A_t\big)$
+
+$\text{clip}(x, a, b)$ returns $a$ if $x<a$, $b$ if $x>b$ and $x$ otherwise. In the formula above $\epsilon$ is called the clip ratio and is intuitively a level of tolerance we accept in the divergence of the policy from its prior iteration.
+
+$\rho_{k, t} = \pi_\theta(a_t \mid s_t) \, / \, \pi_{\theta_k}(a_t \mid s_t)$ is the probability ratio between the current state of the policy during the update and the previous iteration of the policy.
+
+## Implementation
+
+
+### Model Initialisation
+
+The
+
+### Environments
+
+An MDP within the domain of RL is more commonly referred to as an environment and, within my implementation of PPO, I assume that environments are designed following the [Gymnasium](https://gymnasium.farama.org/index.html) API standard. Gymnasium is the Python API for single agent environments that I am most familiar with and has a simple and intuitive set of methods for resetting and stepping. The package has a good variety of standard environments used by deep RL researchers from classical control, CartPole, Acrobot to more complex robotic simulations in MuJoCo such as Half Cheetah and Humanoid. This package also comes with a useful variety of pre-made wrappers for environments such as RecordEpisodeStatistics and AtariPreprocessing and writing a custom wrapper is simple.
+
+<figure class="half">
+    <a href="{{ site.url }}{{ site.baseurl }}/assets/gifs/half_cheetah.gif"><img src="{{ site.url }}{{ site.baseurl }}/assets/gifs/half_cheetah.gif"></a>
+    <a href="{{ site.url }}{{ site.baseurl }}/assets/gifs/humanoid.gif"><img src="{{ site.url }}{{ site.baseurl }}/assets/gifs/humanoid.gif"></a>
+    <figcaption>Previews of the Half Cheetah and Humanoid MuJoCo environments in the Gymnasium package. </figcaption>
+</figure>
+
+It is common for data to be collected synchronously or asynchronously from multiple instantiations of the environment during each training step of PPO. This is known as a vectorised environment. A synchronous vectorised environment waits for each environment to complete their step before computing new actions for each and then taking another step. Async, on the other hand, does not and one environment can get much further ahead than others. Advantage estimates based on data from lagging processes can become outdated by the time they are utilised, failing to accurately reflect the agent's current state. For this reason, I opt not to use the asynchronous version.
+
+The benefits of a vectorised environment are as following:
+
+- States from all environments can be batched together and ran through the policy network to get actions for all of them simultaneously. This can lead to a linear speedup in the number of environment steps taken per second.
+
+- Gathering data from multiple independent environments makes the collected data more diverse and reduces the overall correlation between samples. This helps the agent to generalise better to a wide range of situations that can occur, speeding up learning.
+
+My own implementation for a class which creates a synchronous vectorised environment is given below:
+
+{% include vec_env_code.md %}
+
+### Generalised Advantage Estimation
