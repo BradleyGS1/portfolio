@@ -7,7 +7,7 @@ read_time: true
 toc: true
 toc_label: "Contents"
 share: true
-categories: jekyll blog
+categories: post
 ---
 
 Proximal Policy Optimisation (PPO) is an on-policy deep reinforcement learning (RL) algorithm that builds on earlier algorithms by utilising both an actor and critic model (parameterised by neural networks) and a modified policy objective. This policy objective is altered with the hope that updates to the model will be as large as possible without significantly diverging from its previous iteration. Its improved stability and sample efficiency makes it a popular algorithm for deep RL researchers in fields such as robotics, classic control and sequential decision making problems. 
