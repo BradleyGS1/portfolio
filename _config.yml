@@ -19,6 +19,8 @@
 # in the templates via {{ site.myvariable }}.
 
 title: "Bradley's Portfolio"
+minimal_mistakes_skin: default
+search: true
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
 
@@ -45,9 +47,13 @@ author:
 
 # Build settings
 markdown: kramdown
-remote_theme: "mmistakes/minimal-mistakes@4.26.2"
+remote_theme: mmistakes/minimal-mistakes
 plugins:
+  - jekyll-paginate
+  - jekyll-sitemap
+  - jekyll-gist
   - jekyll-feed
+  - jemoji
   - jekyll-include-cache
 
 # Exclude from processing.
