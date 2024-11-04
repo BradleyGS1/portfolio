@@ -40,6 +40,17 @@
        displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
        processEscapes: true
      },
-     "HTML-CSS": { availableFonts: ["TeX"] }
+     "HTML-CSS": { availableFonts: ["TeX"] },    
+     TeX: {
+       Macros: {
+         // Define macros for pseudocode
+         STATE: ["\\textbf{#1}", 1],
+         WHILE: ["\\textbf{while} \\; #1 \\; \\textbf{do}", 1],
+         IF: ["\\textbf{if} \\; #1 \\; \\textbf{then}", 1],
+         ELSE: "\\textbf{else}",
+         ENDIF: "\\textbf{end if}",
+         ENDWHILE: "\\textbf{end while}"
+       	}
+     }
    });
 </script>

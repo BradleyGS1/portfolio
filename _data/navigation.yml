@@ -3,3 +3,5 @@ main:
     url: /
   - title: "About Me"
     url: /about/
+  - title: "Contact"
+    url: /contact/

@@ -8,11 +8,62 @@ toc: true
 toc_label: "Contents"
 share: true
 categories: post
+header:
+    teaser: "/assets/images/ppo_thumbnail.jpg"
+
+cart: "[CartPole-v1](https://wandb.ai/bgaddspeakman-bradley-gadd-speakman/CartPole-v1)"
+acro: "[Acrobot-v1](https://wandb.ai/bgaddspeakman-bradley-gadd-speakman/Acrobot-v1)"
+brek: "[Breakout-v5](https://wandb.ai/bgaddspeakman-bradley-gadd-speakman/Breakout-v5)"
+galx: "[Galaxian-v5](https://wandb.ai/bgaddspeakman-bradley-gadd-speakman/Galaxian-v5)"
+
+gallery_0:
+    - url: /assets/gifs/cartpole_render_0.gif
+      image_path: /assets/gifs/cartpole_render_0.gif
+      title: "CartPole Start Render"
+    - url: /assets/gifs/cartpole_render_1.gif
+      image_path: /assets/gifs/cartpole_render_1.gif
+      title: "CartPole Middle Render"
+    - url: /assets/gifs/cartpole_render_2.gif
+      image_path: /assets/gifs/cartpole_render_2.gif
+      title: "CartPole Last Render"
+
+gallery_1:
+    - url: /assets/gifs/acrobot_render_0.gif
+      image_path: /assets/gifs/acrobot_render_0.gif
+      title: "Acrobot Start Render"
+    - url: //assets/gifs/acrobot_render_1.gif
+      image_path: /assets/gifs/acrobot_render_1.gif
+      title: "Acrobot Middle Render"
+    - url: /assets/gifs/acrobot_render_2.gif
+      image_path: /assets/gifs/acrobot_render_2.gif
+      title: "Acrobot Last Render"
+
+gallery_2:
+    - url: /assets/gifs/breakout_render_0.gif
+      image_path: /assets/gifs/breakout_render_0.gif
+      title: "Breakout Start Render"
+    - url: /assets/gifs/breakout_render_1.gif
+      image_path: /assets/gifs/breakout_render_1.gif
+      title: "Breakout Middle Render"
+    - url: /assets/gifs/breakout_render_2.gif
+      image_path: /assets/gifs/breakout_render_2.gif
+      title: "Breakout Last Render"
+
+gallery_3:
+    - url: /assets/gifs/galaxian_render_0.gif
+      image_path: /assets/gifs/galaxian_render_0.gif
+      title: "Galaxian Start Render"
+    - url: /assets/gifs/galaxian_render_1.gif
+      image_path: /assets/gifs/galaxian_render_1.gif
+      title: "Galaxian Middle Render"
+    - url: /assets/gifs/galaxian_render_2.gif
+      image_path: /assets/gifs/galaxian_render_2.gif
+      title: "Galaxian Last Render"
 ---
 
-Proximal Policy Optimisation (PPO) is an on-policy deep reinforcement learning (RL) algorithm that builds on earlier algorithms by utilising both an actor and critic model (parameterised by neural networks) and a modified policy objective. This policy objective is altered with the hope that updates to the model will be as large as possible without significantly diverging from its previous iteration. Its improved stability and sample efficiency makes it a popular algorithm for deep RL researchers in fields such as robotics, classic control and sequential decision making problems. 
+Proximal Policy Optimisation (PPO) is an on-policy deep reinforcement learning (RL) algorithm that builds on earlier algorithms by utilising both an actor-critic model (parameterised by neural networks) and a modified policy objective. This improved policy objective aims to make updates to the model that are as large as possible without significantly diverging from its previous iteration. Its improved stability and sample efficiency makes it a popular algorithm for deep RL researchers in fields such as robotics, control theory and sequential decision making problems. 
 
-The purpose of this project is to investigate the theory and implementation details that go into PPO and ideally serve as a useful learning resource. Experiments underlining the performance of the algorithm on various environments are provided at the end.
+The purpose of this project is to investigate the theory and implementation details that go into PPO and ideally serve as a useful learning resource. Experiments underlining the performance of the algorithm on various environments as well as animated renderings are provided at the end of the post.
 
 ## Basic Theory
 
@@ -22,39 +73,46 @@ The type of problems that can be solved by RL algorithms are formulated as a mat
 
 A critic function $V_\phi$ parameterised by $\phi$, the weights within the neural network, is employed to approximate the expected discounted sum of returns from a given state. By pairing the actor with a critic, policy updates are weighted using an advantage estimate $A_t$, which is calculated as the difference between observed discounted returns $R_t$ and the critic's estimated value $V_\phi(s_t)$. This allows the policy to be updated more significantly in scenarios where the actual returns exceed the critic's expectations, thereby prioritising updates that yield higher benefits and correcting areas where the critic’s predictions are more surprising.
 
-$R_t = \sum\limits_{k=0}^{T-t-1} \gamma^k r_{t+k} \;, \quad A_t = R_t - V_\phi(s_t)$. 
+$$R_t = \sum\limits_{k=0}^{T-t-1} \gamma^k r_{t+k} \;, \quad A_t = R_t - V_\phi(s_t)$$ 
 
 Here $\gamma \in (0, 1)$ is a user specified discount factor that is theoretically unnecessary but in practice, when set to a suitable value, massively improves the stability of the value function updates. The value function objective is then given by:
 
-$\phi_{k+1} = \text{arg}\underset{\small{\phi}}{\min} \frac{1}{\mid D_k \mid T} \sum\limits_{\tau\sim D_k} \sum\limits_{t=0}^{T-1} \big(R_t - V_{\phi_k}(s_t)\big)^2$ 
+$$\phi_{k+1} = \text{arg}\underset{\small{\phi}}{\min} \frac{1}{\mid D_k \mid T} \sum\limits_{\tau\sim D_k} \sum\limits_{t=0}^{T-1} \big(R_t - V_{\phi_k}(s_t)\big)^2$$
 
 where $D_k$ is a set of gathered trajectories by running policy $\pi_{\theta_k}$ in the environment. $\tau$ denotes a trajectory uniformly sampled from this set.
 
 ### Clip Policy Objective
 
-The standard policy objective seeks to maximise the finite-horizon expected discounted return of the policy $\pi_\theta$ which is parameterised by $\theta$.
+The standard policy objective seeks to maximise the finite-horizon expected discounted return of the policy $\pi_\theta$, which is parameterised by $\theta$.
 Note that, by convention, objectives used in the training of neural networks are taken to be losses that are to be minimised using gradient descent. Therefore the loss should be considered the negative sign of what is within the argmax
 
-$\theta_{k+1} = \text{arg}\underset{\small{\theta}}{\max} \frac{1}{\mid D_k \mid T} \sum\limits_{\tau\sim D_k} \sum\limits_{t=0}^{T-1} \log \pi_\theta(a_t \mid s_t) \, A_t$.
+$$\theta_{k+1} = \text{arg}\underset{\small{\theta}}{\max} \frac{1}{\mid D_k \mid T} \sum\limits_{\tau\sim D_k} \sum\limits_{t=0}^{T-1} \log \pi_\theta(a_t \mid s_t) \, A_t$$
 
-The primary motivation behind PPO is being able to take the largest possible update step using current data without diverging so far away from the prior iteration that we get performance collapse. To achieve this, PPO uses clipping in the policy objective to reduce the size of the gradient updates when they would normally move the new policy too far from the old policy.
+The primary motivation behind PPO is being able to take the largest possible update step using current data without diverging so far away from the prior iteration that performance collapse occurs. To achieve this, PPO uses clipping in the policy objective to reduce the size of the gradient updates when they would normally move the new policy too far from the old policy.
 
-$\theta_{k+1} = \text{arg}\underset{\small{\theta}}{\max} \frac{1}{\mid D_k \mid T} \sum\limits_{\tau\sim D_k} \sum\limits_{t=0}^{T-1} \min \big(\rho_{k, t} \, A_t,\; \text{clip}(\rho_{k, t}, 1-\epsilon, 1+\epsilon) \, A_t\big)$
+$$\theta_{k+1} = \text{arg}\underset{\small{\theta}}{\max} \frac{1}{\mid D_k \mid T} \sum\limits_{\tau\sim D_k} \sum\limits_{t=0}^{T-1} \min \big(\rho_{k, t} \, A_t,\; \text{clip}(\rho_{k, t}, 1-\epsilon, 1+\epsilon) \, A_t\big)$$
 
-$\text{clip}(x, a, b)$ returns $a$ if $x<a$, $b$ if $x>b$ and $x$ otherwise. In the formula above $\epsilon$ is called the clip ratio and is intuitively a level of tolerance we accept in the divergence of the policy from its prior iteration.
+$\text{clip}(x, a, b)$ returns $a$ if $x<a$, $b$ if $x>b$ and $x$ otherwise. In the formula above $\epsilon$ is called the clip ratio and is intuitively a level of tolerance acceptable in the divergence of the policy from its prior iteration.
 
 $\rho_{k, t} = \pi_\theta(a_t \mid s_t) \, / \, \pi_{\theta_k}(a_t \mid s_t)$ is the probability ratio between the current state of the policy during the update and the previous iteration of the policy.
 
 ## Implementation
 
-
 ### Model Initialisation
 
-The
+The importance of initialising the policy and critic is sometimes understated when it comes to achieving good results with deep RL actor-critic algorithms. Proper initialisation plays a crucial role in the performance and stability of these algorithms. In particular, care should be taken to make the initial policy distribution assign equal probability to all actions independent of state input, in the case of a discrete action space. When the action space is continuous, the initial policy distribution should parameterise a multivariate probability density which is approximately flat. Both situations adhere to the [principle of indifference](https://en.wikipedia.org/wiki/Principle_of_indifference), which suggests that at the outset of training, all possibilities should be explored equally, regardless of the specific situation. This approach ensures balanced exploration, helping to prevent the policy from converging prematurely to a local minimum due to limited exploration.
+
+To achieve this goal, in my implementation, the weights of all backbone layers in both the actor and critic use orthogonal initialisation with standard deviation $\sqrt2$. The head of the actor network uses standard deviation $0.01$ and, it should be noted that in the case of a continuous action in a n-box, I output $n$ modes (scaled to fit in $[-1, 1]$) and $n$ log precisions to parameterise a random vector of $n$ iid unimodal beta distributions that are scaled to fit the n-box bounds. The critic network head uses standard deviation $1.0$ but this is done for no particular reason.
+
+The actual architecture employed in the actor and critic networks is problem specific and depends on the state space, action space and complexity of the problem. For example, solving a simple classic control problem with a state space of $\mathbb{R}^a$ and discrete action space with $b$ categories might have a small dense policy network with $a$ input neurons, hidden units $256, 256$ with $\text{tanh}$ activation, and then $b$ output neurons with no activation representing the action logits. A more visual based problem like beating an Atari game would typically utilise a larger policy network with convolutional layers and $ReLu$ activation.
+
+My own implementation of an Agent class that uses the [PyTorch](https://pytorch.org/) deep learning framework to instantiate the actor and critic networks as well as defining the forward pass is given below:
+
+{% include agent_code.md %}
 
 ### Environments
 
-An MDP within the domain of RL is more commonly referred to as an environment and, within my implementation of PPO, I assume that environments are designed following the [Gymnasium](https://gymnasium.farama.org/index.html) API standard. Gymnasium is the Python API for single agent environments that I am most familiar with and has a simple and intuitive set of methods for resetting and stepping. The package has a good variety of standard environments used by deep RL researchers from classical control, CartPole, Acrobot to more complex robotic simulations in MuJoCo such as Half Cheetah and Humanoid. This package also comes with a useful variety of pre-made wrappers for environments such as RecordEpisodeStatistics and AtariPreprocessing and writing a custom wrapper is simple.
+An MDP within the domain of RL is more commonly referred to as an environment and, within my implementation of PPO, I assume that environments are designed following the [Gymnasium](https://gymnasium.farama.org/index.html) API standard. Gymnasium is the Python API for single agent environments that I am most familiar with and has a simple and intuitive set of methods for resetting and stepping. The package has a good variety of standard environments used by deep RL researchers from classic control with CartPole and Acrobot to more complex robotic simulations in MuJoCo such as Half Cheetah and Humanoid. This package also comes with a useful variety of pre-made wrappers for environments such as RecordEpisodeStatistics and AtariPreprocessing, and writing a custom wrapper is simple.
 
 <figure class="half">
     <a href="{{ site.url }}{{ site.baseurl }}/assets/gifs/half_cheetah.gif"><img src="{{ site.url }}{{ site.baseurl }}/assets/gifs/half_cheetah.gif"></a>
@@ -70,8 +128,166 @@ The benefits of a vectorised environment are as following:
 
 - Gathering data from multiple independent environments makes the collected data more diverse and reduces the overall correlation between samples. This helps the agent to generalise better to a wide range of situations that can occur, speeding up learning.
 
-My own implementation for a class which creates a synchronous vectorised environment is given below:
+My own implementation of a SyncVecEnv class which creates a synchronous vectorised environment is given below:
 
 {% include vec_env_code.md %}
 
 ### Generalised Advantage Estimation
+
+The standard infinite horizon advantage estimate $A_t^{(\infty)}$ can be computed using the formula 
+
+$$A_t^{(\infty)} = \sum\limits_{k=0}^{\infty}  \gamma^{k} r_{t+k} - V_\phi(s_t)$$
+
+where $r_t$ is the reward at time step $t$ and is $0$ for all steps after the episode has terminated. If the episode has been truncated (no more data for the episode but has not terminated) then the reward at the terminal step is given by the value function. The many times steps involved in this calculation reduces the bias of the estimator at the cost of variance, which is introduced by the uncertainty of the many future actions that can be taken.
+
+The one-step horizon advantage estimate or temporal difference residual $A_t^{(1)}$ is given by the formula
+
+$$A_t^{(1)} = r_t + \gamma V_\phi(s_{t+1}) - V_\phi(s_{t})$$
+
+where $V_\phi(s_{t+1})$ evaluates to $0$ if time step $t+1$ is terminal. This estimate has high bias since it relies on only one empirically provided reward value and value function estimate to approximate the discounted sum of returns. It then subtracts another value function estimate to compute the temporal difference residual. However, using less rewards from gathered data also reduces the variance of this estimate.
+
+While having a high level of variance in the advantage estimator is undesirable, it can still be mitigated simply by collecting more varied samples of data for our network updates. Bias, on the other hand, can cause the whole algorithm to fail to converge or it might converge on a solution that is not even a local optimum. Hence why the first method of estimation is typically more favourable than the latter.
+
+Generalised advantage estimator (GAE), first introduced in a [paper by John Schulman et al. (2016)](https://arxiv.org/abs/1506.02438), is a method of bias-variance tradeoff parameterised by $\gamma \in (0, 1)$ and $\lambda \in (0, 1)$ which takes the form of a discounted sum of temporal difference residuals. The exact mechanism by how GAE achieves this bias-variance tradeoff is out of scope for this post but the formula is
+
+$$A_t^{\text{GAE}(\gamma, \lambda)} = \sum\limits_{k=0}^{\infty} (\gamma \lambda)^k A_{t+k}^{(1)}$$
+
+typical values for $\gamma$ and $\lambda$ are close to $1.0$. The [paper by Marcin Andrychowicz et al. (2020)](https://arxiv.org/abs/2006.05990) recommends experimenting first with a value of $\gamma = 0.99$ but should definitely be tuned to the individual environment, and that $\lambda = 0.9$ is a safe starting value for GAE.
+
+In any implementation for computing advantage estimates, I usually utilise backwards recursion to avoid performing repeated calculations and to reduce time complexity of a naive method. This backwards recursion scheme for GAE can be summarised as:
+
+Initialise the episodes' last time step estimate, 
+
+$$A_{T-1}^{\text{GAE}(\gamma, \lambda)} = A_{T-1}^{(1)} = r_{T-1} + \gamma V_\phi(s_{T}) - V_\phi(s_{T-1})$$
+
+Perform the backwards recursion for t = T-2, T-3, ..., 1, 0, 
+
+$$A_{t}^{(1)} = r_{t} + \gamma V_\phi(s_{t+1}) - V_\phi(s_{t}), $$
+
+$$A_{t}^{\text{GAE}(\gamma, \lambda)} = A_{t}^{(1)} + \gamma \lambda A_{t+1}^{\text{GAE}(\gamma, \lambda)}$$
+
+My implementation of GAE that occurs within the training loop of PPO is a method named compute_advantages and is given below: 
+
+{% include advantages_code.md %}
+
+## Experiments
+
+In order to evaluate the performance of my PPO implementation, I conducted experiments on both classic control and Atari environments from the [Gymnasium](https://gymnasium.farama.org/index.html) library. The classic control tasks included CartPole-v1 and Acrobot-v1 which provide simpler benchmarks for testing deep RL algorithms. Additionally, I experimented with more complex Atari environments such as Breakout and Galaxian in order to assess the algorithm's ability at handling higher dimensional state spaces and more challenging dynamics.
+
+### Evaluation Metrics 
+
+I use [Weights and Biases](https://wandb.ai/site/) in order to log losses, metrics and other monitoring values that are calculated during the training of the agent. The loss based metrics are policy loss, critic loss and entropy. The key performance metrics includes the maximum episode return and a rolling median episode length, as well as an approximation of the Kullback-Leibler divergence and the fraction of data that caused clipping in the policy objective. Examples of utility metrics are: global steps taken per second, 0.05, 0.50 and 0.95 quantiles of rolling episodic returns. The rolling returns queue used to calculate the episodic return quantiles was of size 100 * num_envs.
+
+### Results and Analysis
+
+All results were averaged over 3 different runs using the exact same parameters for each experiment. Click the name of an environment below to be redirected to the logging information at Weights and Biases.
+
+|Environment    |{{ page.cart }}|{{ page.acro }}|{{ page.brek }}|{{ page.galx }}|
+|---------------|---------------|---------------|---------------|---------------|
+|Target return  |500.0          |-100.0         |400.0          |7000.0         |
+|Ep. return max |500.0          |-62.3          |614.6          |8366.7         |
+|Global steps   |100,000        |100,000        |10,000,000     |10,000,000     |
+|Training time  |56s            |1m 00s         |4h 25m 57s     |4h 27m 05s     |
+|Ep. return 0.05|72.0           |-148.9         |36.3           |1433.2         |
+|Ep. return 0.50|201.6          |-92.0          |351.0          |3016.7         |
+|Ep. return 0.95|492.2          |-72.3          |420.7          |4701.3         |
+
+CartPole and Acrobot, being the simplest of the tested environments, took only around a minute each to complete 100,000 global environment steps and create 5 episode renders. Both of them consistently converged to an optimal policy within the given training time in all 3 of their respective runs. The largest achieved episodic return averaged across runs by CartPole was 500.0 which is also the maximum possible value whereas Acrobot managed to achieve a value of -62.3 significantly surpassing its set target of -100.0. The 0.95 quantiles for episodic return also managed to surpass the target for Acrobot and very nearly reach it in CartPole. Overall, I interpret the results to indicate that, my implementation of PPO does in fact work for these classic control environments and can reproduce similar outcomes from other independent results.
+
+Atari Breakout and Galaxian are both much harder environments to train an agent on than CartPole or Acrobot. The Atari environments have a significantly higher-dimensional state space, as they use RGB images, compared to the classic control environments, which typically represent state via an n-dimensional real vector. The dynamics underlying these environments are also much more complex, rewards are sparser and they require much more effort in order to obtain them. Because of these factors, the neural networks must be larger and their dense layers replaced by convolutional layers. Many more global steps are needed in order to see convergence, resulting in training times of around 4.5 hours - that's almost 270 times longer than CartPole.
+
+All runs of the Atari games also converged nicely towards an optimal poicy within the training time provided, managing for all runs to achieve maximum episode returns greater than the target. These results suggest that my PPO algorithm also works well for visual input based environments like Atari games. It is worth noting that the 0.95 quantiles of the most recent episodic returns went above the target threshold for all runs of Breakout and none of the runs of Galaxian. This suggests that in practise it may be rare for the agent to display a really good run surpassing the target return in Galaxian but is quite common in Breakout. This could be caused by the added uncertainty involved in Galaxian due to random enemy movements, which constantly threaten to end an episode. Breakout, on the other hand, has a more consistent environment where the only cause of failure is the agent's own actions.
+
+In Weights and Biases there are other experiments such as MuJoCo Ant-v4 which demonstrates my algorithm's ability to solve environments with larger flat state spaces and with continuous action spaces. I have decided to omit these results from this analysis section in order to reduce length. With more time I would conduct these experiments with a larger sample size (more runs for each environment and more varied environments) and I conjecture that my results would better reflect my algorithm's performance and backup my claims of its ability to solve a wide variety of environments.
+
+### Hyperparameters
+
+For each experiment, the 3 runs were all conducted using the same hyperparameters. All runs have hyperparameters logged to Weights and Biases but I also provide the following table which gives a comprehensive list of these values for each environment:
+
+|Environment    |{{ page.cart }}|{{ page.acro }}|{{ page.brek }}|{{ page.galx }}|
+|---------------|---------------|---------------|---------------|---------------|
+|Num updates    |200            |200            |10,000         |10,000         |
+|Num envs       |4              |4              |8              |8              |
+|Steps per env  |125            |125            |125            |125            |
+|Num epochs     |4              |4              |4              |4              |
+|Batch size     |128            |128            |256            |256            |
+|Critic coef    |0.5            |0.5            |0.5            |0.5            |
+|Entropy coef   |0.01           |0.01           |0.01           |0.01           |
+|Clip ratio     |0.2            |0.2            |0.1            |0.1            |
+|Max grad norm  |0.5            |0.5            |0.5            |0.5            |
+|Learning rate  |3e-4           |3e-4           |3e-4           |3e-4           |
+|Discount factor|0.99           |0.99           |0.99           |0.99           |
+|GAE factor     |0.95           |0.95           |0.95           |0.95           |
+|Norm advantages|1              |1              |1              |1              |
+|Clip va loss   |1              |1              |0              |0              |
+|Conv network   |0              |0              |1              |1              |
+|Joint network  |0              |0              |1              |1              |
+|Use gpu        |0              |0              |1              |1              |
+|Target kl div  |0.01           |0.01           |null           |null           |
+
+## Supplementary Materials
+
+### Pseudocode
+
+<figure> 
+    <a href="{{ site.url }}{{ site.baseurl }}/assets/images/pseudocode.jpg"><img src="{{ site.url }}{{ site.baseurl }}/assets/images/pseudocode.jpg"></a>
+    <figcaption> Pseudocode for the Proximal Policy Optimisation algorithm. </figcaption>
+</figure>
+
+### Setup and Execution
+
+I would personally recommend using [Miniconda](https://docs.anaconda.com/miniconda/) to manage multiple Python environments and dependencies. This helps prevent package conflicts from disrupting any of your existing setups.
+
+Create a new project directory and clone my repos from github. Then move your current working directory into the newly created 'PPO' folder. 
+```markdown
+git clone https://github.com/BradleyGS1/PPO
+```
+
+Run the following to setup a conda environment 'ppo' with the required dependencies. If you do not meet the requirements to use CUDA or simply do not require it then first remove the line   '- pytorch-cuda=11.8' from the environment.yml file.
+```markdown
+conda env create -f environment.yml
+conda activate ppo
+```
+
+Run the CLI tool with your set hyperparameters which includes the path to one of the default environment files provided (or create a custom one) then watch the progress bar to see various metrics while your PPO agent is training!
+```markdown
+python src/ppo_cli.py <experiment> <env_script> <*hyperparams>
+```
+
+Example usage:
+<figure> 
+    <a href="{{ site.url }}{{ site.baseurl }}/assets/images/ppo_cli_help.jpg"><img src="{{ site.url }}{{ site.baseurl }}/assets/images/ppo_cli_help.jpg"></a>
+    <figcaption> How to view the help string of the PPO CLI tool. </figcaption>
+</figure>
+
+<figure>
+    <a href="{{ site.url }}{{ site.baseurl }}/assets/images/ppo_cli_usage.jpg"><img src="{{ site.url }}{{ site.baseurl }}/assets/images/ppo_cli_usage.jpg"></a>
+    <figcaption> Example usage of the PPO CLI tool. </figcaption>
+</figure>
+
+### Animations
+
+This section provides a series of animations for each experiment showcasing how the agent's performance changed during training. It should be noted, that since the episodes have been rendered during the data gathering process, the trajectories taken use exploratory sampled actions taken straight from the policy mid-training.
+
+CartPole:
+
+{% include gallery id="gallery_0" caption="Animated renderings of my PPO agent playing CartPole before, during and near the end of training respectively." %}
+
+Acrobot:
+
+{% include gallery id="gallery_1" caption="Animated renderings of my PPO agent playing Acrobot before, during and near the end of training respectively." %}
+
+Breakout:
+
+{% include gallery id="gallery_2" caption="Animated renderings of my PPO agent playing Breakout before, during and near the end of training respectively." %}
+
+Galaxian:
+
+{% include gallery id="gallery_3" caption="Animated renderings of my PPO agent playing Galaxian before, during and near the end of training respectively." %}
+
+### Attributions
+
+A great resource that certainly helped me in my understanding of Proximal Policy Optimisation, specifically the implementation, was this [blog by Huang, Shengyi et al](https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/).
+
+Icon used in the thumbnail created by [Smashicons](https://www.flaticon.com/free-icons/ai) - Flaticon.
+

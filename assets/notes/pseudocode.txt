@@ -1,0 +1,56 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage[linesnumbered,ruled,vlined]{algorithm2e}
+
+\SetNlSty{textbf}{}{} % Line number style
+\renewcommand{\algorithmicline}{\vspace{0.5em}} % Adjust vertical space
+
+\begin{document}
+\begin{algorithm}
+\caption{Proximal Policy Optimisation}
+
+Input: initial policy parameters $\theta$, initial critic parameters $\phi$, training hyperparameters
+
+Create a synchronous vectorised environment by initialising the environment $num\_envs$ times 
+
+\For{$k \textnormal{ in range}(0, num\_updates)$}{
+    $\theta_k \xleftarrow{} \theta, \phi_k \xleftarrow{} \phi$ \\
+
+    Collect truncated trajectories $\mathcal{D}_k$ by running policy $\pi_k$ with params $\theta_k$ in the sync vec env for $steps\_per\_env$ time steps \\
+
+    Compute $old\_log\_probs_t = \log{\pi_k(a_t \mid s_t)}$ using collected action probs \\
+
+    Compute discounted returns $\mathcal{R}_t$ using collected rewards
+    
+    Compute advantage estimates $\hat{\mathcal{A}}_t = \mathcal{R}_t - \mathcal{V}_k(s_t), \mathcal{V}_k$ is the critic with params $\phi_k$ \\
+
+    \For{$epoch \textnormal{ in range}(0, num\_epochs)$}{
+        Shuffle all trajectory data — states, actions, returns and advantage estimates — by generating a random permutation of their time step indices. \\
+        
+        Partition the shuffled data into $minibatches$ of size $batch\_size$ \\
+
+        \For{$batch \textnormal{ in } minibatches$}{
+            Normalise the advantages in $batch$ by subtracting their mean and dividing by stddev if desired
+        
+            Autodiff on with respect to $\theta$ and $\phi$ \\
+            
+            Compute $new\_log\_probs_t = \log{\pi(a_t \mid s_t)}$ using $states$, $actions$ in $batch$ \\
+            
+            Compute prob ratios and clipped prob ratios $\rho_t = \textnormal{exp}{(new\_log\_probs_t - old\_log\_probs_t)} \newline \rho_t^{clip} = \textnormal{clip}(\rho_t, 1 - clip\_ratio, 1 + clip\_ratio)$ \\
+            
+            Compute policy loss $L^{\pi} = -\frac{1}{batch\_size} \sum\limits_{t} \textnormal{min}(\rho_t \hat{\mathcal{A}}_t, \rho_t^{clip} \hat{\mathcal{A}}_t)$\\
+
+            Compute critic loss $L^{\mathcal{V}} = \frac{1}{batch\_size} \sum\limits_{t} (\mathcal{R}_t - \mathcal{V}(s_t))^2$
+            
+            Autodiff off \\
+            
+            Autodiff compute grads: $\nabla_{\theta}L^{\pi}$, $\nabla_{\phi}L^{\mathcal{V}}$ \\
+            
+            Update the policy via: $\theta \xleftarrow{} \theta + \lambda \nabla_{\theta}L^{\pi}$ \\
+            
+            Update the critic via: $\phi \xleftarrow{} \phi + \lambda \nabla_{\phi}L^{\mathcal{V}}$ \\
+        }
+    }
+}
+\end{algorithm}
+\end{document}
