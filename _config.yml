@@ -22,7 +22,7 @@ title: "Bradley's Portfolio"
 minimal_mistakes_skin: dark
 search: true
 url: https://bradleygs1.github.io/  # the base hostname and protocol for your site, e.g. http://example.com
-baseurl: /  
+baseurl: /
 
 include: ["_pages"]
 
